@@ -10,7 +10,7 @@ description: 为我自己维护的 Python Web 工具新增或调整 Docker Compo
 - 基础镜像固定为 `python:3.12-slim`。用 `WORKDIR /app`。构建时只复制安装依赖所需的文件，例如 `COPY requirements.txt .`，再执行 `RUN pip install --no-cache-dir -r requirements.txt`。禁止 `COPY . .`，也避免无关文件进入构建上下文。用 `.dockerignore` 排除 Git 元数据、虚拟环境、本地配置、密钥和运行数据。
 - 用 Compose 绑定挂载 `.:/app`，应用代码和资源由宿主机工作目录提供。把依赖安装在挂载目录之外。实际启动命令使用项目已有入口，并让应用在容器内监听 `0.0.0.0`。持久化数据写到挂载目录内的指定路径或现有数据卷。
 - 显式设置 `image` 和 `container_name`。使用符合项目实际用途的小写短横线名称，镜像加显式版本标签，容器名用同一个名称但不加标签。例如参考项目使用 `wecom-checkin:1.0` 和 `wecom-checkin`。已有部署改名时，检查项目身份和宿主机端口是否会与旧容器冲突。
-- 主配置放共享默认值。默认发布到宿主机 `127.0.0.1`，需要对外访问时沿用项目的代理或按用户要求调整。把端口、环境变量等可定制项写入受 Git 跟踪的 `compose.override.example.yaml`，指导用户复制成 `compose.override.yaml`，并把真实覆盖文件加入 `.gitignore`。示例只放占位值，不放密钥。
+- 主配置放共享默认值。默认对宿主机所有网卡开放，端口映射使用 `宿主机端口:容器端口`，不指定宿主机 IP。把端口、环境变量等可定制项写入受 Git 跟踪的 `compose.override.example.yaml`，指导用户复制成 `compose.override.yaml`，并把真实覆盖文件加入 `.gitignore`。示例只放占位值，不放密钥。
 
 主配置示例。将 `my-tool` 和端口替换成实际值。
 
@@ -22,7 +22,7 @@ services:
     container_name: my-tool
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
     volumes:
       - .:/app
     stop_grace_period: 10s
@@ -34,7 +34,7 @@ services:
 services:
   app:
     ports: !override
-      - "127.0.0.1:8080:8000"
+      - "8080:8000"
 ```
 
 在项目文档中说明以下操作，命令从 Compose 文件所在目录运行，并使用实际服务键。
